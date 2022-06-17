@@ -10,10 +10,10 @@ function MainLayout() {
 
     return (
         <Layout>
-            <Header>
-                {/* <Button onClick={() => navigate("/login")}>Login</Button> */}
+            <Header className="navigation">
+                <Button onClick={() => navigate("/login")}>Login</Button>
                 {/* <NavLink to="/requests">Requests</NavLink> */}
-                <Button>Connect Wallet</Button>
+                <Button type="primary">Connect Wallet</Button>
             </Header>
             <Content>
                 <Outlet />
