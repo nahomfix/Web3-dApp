@@ -1,10 +1,39 @@
 import { LockOutlined, MailOutlined } from "@ant-design/icons";
-import { Button, Col, Form, Input, Row } from "antd";
+import { Alert, Button, Col, Form, Input, Row } from "antd";
 import React from "react";
+import { useMutation } from "react-query";
+import { useNavigate } from "react-router-dom";
+import api from "../config/api";
 
 function Login() {
+    const navigate = useNavigate();
+
+    const { mutate, isLoading, isError, error } = useMutation(
+        (credentials) => api.post("/login", credentials),
+        {
+            onSuccess: async (response) => {
+                const { data } = response;
+                localStorage.setItem("web3_token", data.data.token);
+                localStorage.setItem(
+                    "web3_user",
+                    JSON.stringify({
+                        email: data.data.email,
+                        role: data.data.role,
+                        id: data.data.id,
+                    })
+                );
+
+                if (data.data.role === "staff") {
+                    navigate("/");
+                } else {
+                    navigate("/trainee");
+                }
+            },
+        }
+    );
+
     const handleSubmit = (values) => {
-        console.log(values);
+        mutate(values);
     };
 
     return (
@@ -54,10 +83,22 @@ function Login() {
                             placeholder="Password"
                         />
                     </Form.Item>
-                    <Button htmlType="submit" type="primary" block>
+                    <Button
+                        htmlType="submit"
+                        type="primary"
+                        block
+                        loading={isLoading}
+                    >
                         Login
                     </Button>
                 </Form>
+                {isError ? (
+                    <Alert
+                        style={{ marginTop: "20px" }}
+                        message={error}
+                        type="error"
+                    />
+                ) : null}
             </Col>
         </Row>
     );
