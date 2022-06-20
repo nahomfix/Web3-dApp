@@ -10,6 +10,8 @@ from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 
+from account import check_balance, generate_algorand_keypair
+
 load_dotenv()
 
 app = Flask(__name__)
@@ -32,6 +34,7 @@ class Users(db.Model):
     password = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(50), nullable=False)
     private_key = db.Column(db.String(255), nullable=False)
+    address = db.Column(db.String(255), nullable=False)
     passphrase = db.Column(db.String(255), nullable=False)
 
 
@@ -86,6 +89,35 @@ def protected(current_user):
     )
 
 
+@app.route("/check-balance", methods=["GET"])
+@token_required
+def check_user_balance(current_user):
+    balance_amount = check_balance(current_user.address)
+
+    return make_response(
+        jsonify(
+            {
+                "success": True,
+                "data": {
+                    "email": current_user.email,
+                    "address": current_user.address,
+                    "balance": balance_amount,
+                },
+            }
+        ),
+        200,
+    )
+
+
+@app.route("/upload", methods=["POST"])
+def upload_certificate():
+    file = request.files["file"]
+    if not os.path.exists("uploads"):
+        os.makedirs("uploads")
+    file.save(f"uploads/{file.filename}")
+    return make_response(jsonify({"data": "File uploaded successfully!"}), 200)
+
+
 @app.route("/register", methods=["POST"])
 def register():
     email = request.json["email"]
@@ -97,7 +129,16 @@ def register():
     user = Users.query.filter_by(email=email).first()
 
     if not user:
-        user = Users(email=email, password=hashed_password, role=role)
+        private_key, address, passphrase = generate_algorand_keypair()
+
+        user = Users(
+            email=email,
+            password=hashed_password,
+            role=role,
+            private_key=private_key,
+            address=address,
+            passphrase=passphrase,
+        )
 
         db.session.add(user)
         db.session.commit()
